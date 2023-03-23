@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/url"
+	"time"
 )
 
 type AppInfo struct {
@@ -15,10 +16,22 @@ type AppInfo struct {
 }
 
 type Client struct {
-	BaseUrl   *url.URL // https://api.hh.ru
-	UserAgent string   // MyApp/1.0 (my-app-feedback@example.com)
+	BaseUrl        *url.URL // https://api.hh.ru
+	UserAgent      string   // MyApp/1.0 (my-app-feedback@example.com)
+	AppAccessToken string   // Access token for application registered in hh.ru
 
 	httpClient *http.Client
+}
+
+func NewClient(baseUrl *url.URL, userAgent string, appAccessToken string) *Client {
+	return &Client{
+		BaseUrl:        baseUrl,
+		UserAgent:      userAgent,
+		AppAccessToken: appAccessToken,
+		httpClient: &http.Client{
+			Timeout: time.Minute,
+		},
+	}
 }
 
 func (c *Client) Me() (*AppInfo, error) {
@@ -28,6 +41,7 @@ func (c *Client) Me() (*AppInfo, error) {
 	if err != nil {
 		return nil, err
 	}
+	req.Header.Set("Authorization", "Bearer "+c.AppAccessToken)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("User-Agent", c.UserAgent)
 
