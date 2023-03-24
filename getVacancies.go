@@ -1,9 +1,76 @@
 package hh
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 )
+
+type OptionsForGetVacancies struct {
+	Text         string // "react"
+	SearchField  string // "name"
+	Period       int    // 1
+	ItemsPerPage int    // 20
+	PageNumber   int    // 0
+}
+
+// Get all vacancies from hh.ru that are satisfy the specified options
+// API Documentation - https://github.com/hhru/api/blob/master/docs/vacancies.md#поиск-по-вакансиям
+func (c *Client) GetVacancies(options *OptionsForGetVacancies) (*Vacancies, error) {
+	relURL := &url.URL{
+		Path:     "/vacancies",
+		RawQuery: fmt.Sprintf("text=%v&search_field=%v&period=%v&per_page=%v&page=%v", options.Text, options.SearchField, options.Period, options.ItemsPerPage, options.PageNumber),
+	}
+
+	fullURL := c.BaseURL.ResolveReference(relURL)
+
+	req, err := http.NewRequest("GET", fullURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	res := Vacancies{}
+	if err := c.sendRequest(req, &res); err != nil {
+		return nil, err
+	}
+
+	return &res, nil
+}
+
+type Vacancies struct {
+	PerPage   int         `json:"per_page"`
+	Page      int         `json:"page"`
+	Pages     int         `json:"pages"`
+	Found     int         `json:"found"`
+	Clusters  interface{} `json:"clusters"`
+	Arguments interface{} `json:"arguments"`
+	Items     []Vacancy
+}
+
+type Vacancy struct {
+	Salary                 Salary           `json:"salary"`
+	Name                   string           `json:"name"`
+	InsiderInterview       InsiderInterview `json:"insider_interview"`
+	Area                   Area             `json:"area"`
+	Url                    string           `json:"url"`
+	PublishedAt            string           `json:"published_at"`
+	Relations              []interface{}    `json:"relations"`
+	Employer               Employer         `json:"employer"`
+	Contacts               Contacts         `json:"contacts"`
+	ResponseLetterRequired bool             `json:"response_letter_required"`
+	Address                Address          `json:"address"`
+	SortPointDistance      float64          `json:"sort_point_distance"`
+	AlternateUrl           string           `json:"alternate_url"`
+	ApplyAlternateUrl      string           `json:"apply_alternate_url"`
+	Department             Department       `json:"department"`
+	Type                   Type             `json:"type"`
+	Id                     string           `json:"id"`
+	HasTest                bool             `json:"has_test"`
+	ResponseUrl            interface{}      `json:"response_url"`
+	Snippet                Snippet          `json:"snippet"`
+	Schedule               Schedule         `json:"schedule"`
+	Counters               Counters         `json:"counters"`
+}
 
 type Salary struct {
 	To       interface{} `json:"to"`
@@ -36,32 +103,36 @@ type Employer struct {
 	Trusted      bool   `json:"trusted"`
 }
 
+type Phone struct {
+	Country string      `json:"country"`
+	City    string      `json:"city"`
+	Number  string      `json:"number"`
+	Comment interface{} `json:"comment"`
+}
+
 type Contacts struct {
-	Name   string `json:"name"`
-	Email  string `json:"email"`
-	Phones []struct {
-		Country string      `json:"country"`
-		City    string      `json:"city"`
-		Number  string      `json:"number"`
-		Comment interface{} `json:"comment"`
-	} `json:"phones"`
+	Name   string  `json:"name"`
+	Email  string  `json:"email"`
+	Phones []Phone `json:"phones"`
+}
+
+type MetroStation struct {
+	StationId   string  `json:"station_id"`
+	StationName string  `json:"station_name"`
+	LineId      string  `json:"line_id"`
+	LineName    string  `json:"line_name"`
+	Lat         float64 `json:"lat"`
+	Lng         float64 `json:"lng"`
 }
 
 type Address struct {
-	City          string  `json:"city"`
-	Street        string  `json:"street"`
-	Building      string  `json:"building"`
-	Description   string  `json:"description"`
-	Lat           float64 `json:"lat"`
-	Lng           float64 `json:"lng"`
-	MetroStations []struct {
-		StationId   string  `json:"station_id"`
-		StationName string  `json:"station_name"`
-		LineId      string  `json:"line_id"`
-		LineName    string  `json:"line_name"`
-		Lat         float64 `json:"lat"`
-		Lng         float64 `json:"lng"`
-	} `json:"metro_stations"`
+	City          string         `json:"city"`
+	Street        string         `json:"street"`
+	Building      string         `json:"building"`
+	Description   string         `json:"description"`
+	Lat           float64        `json:"lat"`
+	Lng           float64        `json:"lng"`
+	MetroStations []MetroStation `json:"metro_stations"`
 }
 
 type Department struct {
@@ -69,93 +140,21 @@ type Department struct {
 	Name string `json:"name"`
 }
 
-type Vacancy struct {
-	Salary                 Salary           `json:"salary"`
-	Name                   string           `json:"name"`
-	InsiderInterview       InsiderInterview `json:"insider_interview"`
-	Area                   Area             `json:"area"`
-	Url                    string           `json:"url"`
-	PublishedAt            string           `json:"published_at"`
-	Relations              []interface{}    `json:"relations"`
-	Employer               Employer         `json:"employer"`
-	Contacts               Contacts         `json:"contacts"`
-	ResponseLetterRequired bool             `json:"response_letter_required"`
-	Address                Address          `json:"address"`
-	SortPointDistance      float64          `json:"sort_point_distance"`
-	AlternateUrl           string           `json:"alternate_url"`
-	ApplyAlternateUrl      string           `json:"apply_alternate_url"`
-	Department             Department       `json:"department"`
-	Type                   struct {
-		Id   string `json:"id"`
-		Name string `json:"name"`
-	} `json:"type"`
-	Id          string      `json:"id"`
-	HasTest     bool        `json:"has_test"`
-	ResponseUrl interface{} `json:"response_url"`
-	Snippet     struct {
-		Requirement    string `json:"requirement"`
-		Responsibility string `json:"responsibility"`
-	} `json:"snippet"`
-	Schedule struct {
-		Id   string `json:"id"`
-		Name string `json:"name"`
-	} `json:"schedule"`
-	Counters struct {
-		Responses int `json:"responses"`
-	} `json:"counters"`
+type Type struct {
+	Id   string `json:"id"`
+	Name string `json:"name"`
 }
 
-type Vacancies struct {
-	PerPage   int         `json:"per_page"`
-	Page      int         `json:"page"`
-	Pages     int         `json:"pages"`
-	Found     int         `json:"found"`
-	Clusters  interface{} `json:"clusters"`
-	Arguments interface{} `json:"arguments"`
-	Items     []Vacancy
+type Snippet struct {
+	Requirement    string `json:"requirement"`
+	Responsibility string `json:"responsibility"`
 }
 
-func (c *Client) GetVacancies() (*Vacancies, error) {
-	rel := &url.URL{
-		Path:     "/vacancies",
-		RawQuery: "text=react&search_field=name&period=1",
-	}
-	u := c.BaseURL.ResolveReference(rel)
-	req, err := http.NewRequest("GET", u.String(), nil)
-	if err != nil {
-		return nil, err
-	}
+type Schedule struct {
+	Id   string `json:"id"`
+	Name string `json:"name"`
+}
 
-	res := Vacancies{}
-	if err := c.sendRequest(req, &res); err != nil {
-		return nil, err
-	}
-
-	return &res, nil
-
-	//req.Header.Set("Authorization", "Bearer "+c.AppAccessToken)
-	//req.Header.Set("Content-Type", "application/json")
-	//req.Header.Set("User-Agent", c.UserAgent)
-	//
-	//resp, err := c.HTTPClient.Do(req)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//defer resp.Body.Close()
-	//
-	//if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusBadRequest {
-	//	var errRes errorResponse
-	//	if err = json.NewDecoder(resp.Body).Decode(&errRes); err == nil {
-	//		return nil, errors.New(errRes.Description)
-	//	}
-	//
-	//	return nil, fmt.Errorf("unknown error, status code: %d", resp.StatusCode)
-	//}
-	//
-	//var vacancies *Vacancies
-	//var p = make([]byte, 1000)
-	//_, err = resp.Body.Read(p)
-	//fmt.Println(string(p))
-	//err = json.NewDecoder(resp.Body).Decode(&vacancies)
-	//return vacancies, err
+type Counters struct {
+	Responses int `json:"responses"`
 }

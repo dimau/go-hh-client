@@ -20,10 +20,8 @@ type errorResponse struct {
 }
 
 /*
-*
-
-	Since all API endpoints act in the same manner, helper function sendRequest is created to avoid code duplication.
-	It will set common headers (content type, auth header), make request, check for errors, parse response.
+Since all API endpoints act in the same manner, helper function sendRequest is created to avoid code duplication.
+It will set common headers (content type, auth header), make request, check for errors, parse response.
 */
 func (c *Client) sendRequest(req *http.Request, fullResponse interface{}) error {
 	req.Header.Set("Content-Type", "application/json; charset=utf-8")
