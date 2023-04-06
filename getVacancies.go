@@ -4,14 +4,17 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"time"
 )
 
 type OptionsForGetVacancies struct {
-	Text         string // "react"
-	SearchField  string // "name"
-	Period       int    // 1
-	ItemsPerPage int    // 20
-	PageNumber   int    // 0
+	Text         string     // "react"
+	SearchField  string     // "name"
+	Period       int        // 1
+	ItemsPerPage int        // 20
+	PageNumber   int        // 0
+	DateFrom     *time.Time //
+	OrderBy      string     // "publication_time" / "salary_desc" ...
 }
 
 // Get all vacancies from hh.ru that are satisfy the specified options
@@ -19,7 +22,7 @@ type OptionsForGetVacancies struct {
 func (c *Client) GetVacancies(options *OptionsForGetVacancies) (*Vacancies, error) {
 	relURL := &url.URL{
 		Path:     "/vacancies",
-		RawQuery: fmt.Sprintf("text=%v&search_field=%v&period=%v&per_page=%v&page=%v", options.Text, options.SearchField, options.Period, options.ItemsPerPage, options.PageNumber),
+		RawQuery: fmt.Sprintf("text=%v&search_field=%v&period=%v&per_page=%v&page=%v&date_from=%v&order_by=%v", options.Text, options.SearchField, options.Period, options.ItemsPerPage, options.PageNumber, convertGoTimeToISO8601(options.DateFrom), options.OrderBy),
 	}
 
 	fullURL := c.BaseURL.ResolveReference(relURL)
