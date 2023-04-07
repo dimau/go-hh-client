@@ -20,12 +20,37 @@ type OptionsForGetVacancies struct {
 // Get all vacancies from hh.ru that are satisfy the specified options
 // API Documentation - https://github.com/hhru/api/blob/master/docs/vacancies.md#поиск-по-вакансиям
 func (c *Client) GetVacancies(options *OptionsForGetVacancies) (*Vacancies, error) {
-	relURL := &url.URL{
-		Path:     "/vacancies",
-		RawQuery: fmt.Sprintf("text=%v&search_field=%v&period=%v&per_page=%v&page=%v&date_from=%v&order_by=%v", options.Text, options.SearchField, options.Period, options.ItemsPerPage, options.PageNumber, convertGoTimeToISO8601(options.DateFrom), options.OrderBy),
+	params := url.Values{}
+
+	if options.Text != "" {
+		params.Add("text", options.Text)
 	}
 
-	fullURL := c.BaseURL.ResolveReference(relURL)
+	if options.SearchField != "" {
+		params.Add("search_field", options.SearchField)
+	}
+
+	if options.Period != 0 {
+		params.Add("period", fmt.Sprintf("%d", options.Period))
+	}
+
+	if options.ItemsPerPage != 0 {
+		params.Add("per_page", fmt.Sprintf("%d", options.ItemsPerPage))
+	}
+
+	params.Add("page", fmt.Sprintf("%d", options.PageNumber))
+
+	if options.DateFrom != nil && options.Period == 0 {
+		params.Add("date_from", convertGoTimeToISO8601(options.DateFrom))
+	}
+
+	if options.OrderBy != "" {
+		params.Add("order_by", options.OrderBy)
+	}
+
+	fullURL := *c.BaseURL
+	fullURL.Path += "vacancies"
+	fullURL.RawQuery = params.Encode()
 
 	req, err := http.NewRequest("GET", fullURL.String(), nil)
 	if err != nil {
